@@ -1,0 +1,3 @@
+Error lexico en la linea 1: caracter no valido '^'
+Error sintactico: syntax error linea: 2
+Error sintactico: syntax error linea: 4
