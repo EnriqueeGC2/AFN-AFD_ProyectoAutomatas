@@ -1,20 +1,31 @@
 %{
-#include <stdio.h>
-#include <sstream>
-#include "head.h"
+#include <iostream>
+#include <string>
+#include <fstream>
 
-extern int yylexWrapper();
-extern FILE* yyin;
+//#define YYSTYPE std::string
+
+extern char* yytext;
+extern FILE *yyin;
 extern int yylineno;
+extern int yylex();
+
+void yyerror(const char *s) { 
+    std::ofstream errorFile("bitacoraErrores.txt", std::ios_base::app);
+    errorFile << "Error en la linea " << yylineno << ": " << s << ", token erroneo: " << yytext << std::endl;
+    errorFile.close();
+}
+
+std::ofstream outFile;
+
 %}
 
 %union {
-  int num;
-  char* str;
+    int num;
+    char* str;
 }
 
 %token <str> AUTOMATA_AFN
-%token <str> AUTOMATA_AFN_FIN
 %token <str> ALFABETO
 %token <str> ALFABETO_FIN
 %token <str> ESTADO
@@ -25,108 +36,83 @@ extern int yylineno;
 %token <str> FINAL_FIN
 %token <str> TRANSICIONES
 %token <str> TRANSICIONES_FIN
-%token <num> DIGITO
+%token <str> AUTOMATA_AFN_FIN
 %token <str> LETRA
+%token <num> DIGITO
+%token <str> CARACTER
 %token <str> CADENA_VACIA
 %token <str> COMA
-%token <str> CARACTER
 
 %%
 
-automata_afn : AUTOMATA_AFN
-               etiqueta_alfabeto
-               etiqueta_estado
-               etiqueta_inicial
-               etiqueta_final
-               etiqueta_transiciones
-               AUTOMATA_AFN_FIN {
-                std::ostringstream error_message;
-                error_message << "Se esperaba un numero positivo dentro de la etiqueta <ESTADOS>. Error en la línea: "<< yylineno;
-                yyerror(error_message.str().c_str());
-                }       
-             ;
+start: AUTOMATA_AFN alphabet states initial final transitions AUTOMATA_AFN_FIN
+    ;
 
-etiqueta_alfabeto : ALFABETO
-                    elementos_alfabeto
-                    ALFABETO_FIN
-                  ;
+alphabet: ALFABETO {outFile << "<ALFABETO>\n";} symbols ALFABETO_FIN {outFile << "</ALFABETO>\n";}
+    ;
 
-elementos_alfabeto : elementos_alfabeto LETRA
-                  | elementos_alfabeto CARACTER
-                  | LETRA
-                  | CARACTER
-                  | CADENA_VACIA {
-                      std::ostringstream error_message;
-                      error_message << "Error en la línea " << yylineno << ": se esperaba un numero positivo dentro de la etiqueta <ESTADOS>";
-                      yyerror(error_message.str().c_str());
-                    }
-                  ;
+symbols: LETRA { outFile << $1 << "\n"; } symbols
+       | /* empty */
+    ;
 
-etiqueta_estado : ESTADO
-                  elementos_estado
-                  ESTADO_FIN
-               ;
+states: ESTADO {outFile << "<ESTADO>\n";} state_ids ESTADO_FIN {outFile << "</ESTADO>\n";}
+    ;
 
-elementos_estado : elementos_estado DIGITO
-                | DIGITO {
-                      if (yylval.num < 0) {
-                          std::ostringstream error_message;
-                          error_message << "Error en la línea " << yylineno << ": se esperaba un numero positivo dentro de la etiqueta <ESTADOS>";
-                          yyerror(error_message.str().c_str());
-                      }
-                  }
-                ;
+state_ids: DIGITO { outFile << $1 << "\n"; } state_ids
+         | /* empty */
+    ;
 
-etiqueta_inicial : INICIAL
-                  DIGITO
-                  INICIAL_FIN
-                ;
+initial: INICIAL {outFile << "<INICIAL>\n";} initial_states INICIAL_FIN { outFile << "</INICIAL>\n";}
+    ;
 
-etiqueta_final : FINAL
-                elementos_final
-                FINAL_FIN
-              ;
+initial_states: DIGITO { outFile << $1 << "\n"; } initial_states
+               | /* empty */
+    ;
 
-elementos_final : elementos_final DIGITO
-               | DIGITO {
-                      if (yylval.num < 0) {
-                          std::ostringstream error_message;
-                          error_message << "Error en la linea " << yylineno << ": se esperaba un numero positivo dentro de la etiqueta <FINAL>";
-                          yyerror(error_message.str().c_str());
-                      }
-                  }
-               ;
+final: FINAL {outFile << "<FINAL>\n"} final_states FINAL_FIN { outFile << "</FINAL>\n";}
+    ;
 
-etiqueta_transiciones : TRANSICIONES
-                      elementos_transiciones
-                      TRANSICIONES_FIN
-                    ;
+final_states: DIGITO { outFile << $1 << "\n"; } final_states
+            | /* empty */
+    ;
 
-elementos_transiciones : elementos_transiciones TRANSICION
-                      | TRANSICION
-                      ;
+transitions: TRANSICIONES {outFile << "<TANSICIONES>\n"} transition_rules TRANSICIONES_FIN { outFile << "</TRANSICIONES>\n";}
+           ;
 
-TRANSICION : DIGITO COMA LETRA COMA DIGITO
-          | DIGITO COMA CADENA_VACIA COMA DIGITO
-          ;
-
+transition_rules: DIGITO COMA CADENA_VACIA COMA DIGITO { outFile << $1 << ",&," << $5 << "\n"; } transition_rules
+                | DIGITO COMA LETRA COMA DIGITO { outFile << $1 << "," << $3[0] << "," << $5 << "\n"; } transition_rules
+                | /* empty */
+    ;
 
 %%
 
-void yyerror(const char *s) {
-  FILE *logfile = fopen("bitacora_errores.txt", "a");
-  if (logfile == NULL) {
-    printf("Error abriendo el archivo de bitacora\n");
-    return;
-  }
-  fprintf(logfile, "Error sintactico: %s linea: %d\n", s, yylineno);
-  fclose(logfile);
-}
+int main(int argc, char **argv) {
+    if (argc > 1) {
+        yyin = fopen(argv[1], "r");
+        if (yyin == NULL) {
+            std::cerr << "Error al abrir el archivo: " << argv[1] << std::endl;
+            return 1;
+        }
+    }
 
-void initAnalizador(FILE* input_file) {
-    yyin = input_file;
-}
+    // Abrir el archivo de salida
+    outFile.open("output.txt");
+    if (!outFile) {
+        std::cerr << "No se pudo abrir el archivo de salida." << std::endl;
+        return 1;
+    }
 
-int yyparseWrapper(){
-    return yyparse();
+    // Realizar el análisis sintáctico
+    int result = yyparse();
+
+    // Cerrar el archivo de salida
+    outFile.close();
+
+    if (result == 0) {
+        std::cout << "Análisis completado con éxito." << std::endl;
+    } else {
+        std::cout << "Se encontraron errores durante el análisis." << std::endl;
+    }
+
+    return result;
 }

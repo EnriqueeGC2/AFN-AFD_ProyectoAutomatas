@@ -40,22 +40,22 @@
       know about them.  */
    enum yytokentype {
      AUTOMATA_AFN = 258,
-     AUTOMATA_AFN_FIN = 259,
-     ALFABETO = 260,
-     ALFABETO_FIN = 261,
-     ESTADO = 262,
-     ESTADO_FIN = 263,
-     INICIAL = 264,
-     INICIAL_FIN = 265,
-     FINAL = 266,
-     FINAL_FIN = 267,
-     TRANSICIONES = 268,
-     TRANSICIONES_FIN = 269,
-     DIGITO = 270,
-     LETRA = 271,
-     CADENA_VACIA = 272,
-     COMA = 273,
-     CARACTER = 274
+     ALFABETO = 259,
+     ALFABETO_FIN = 260,
+     ESTADO = 261,
+     ESTADO_FIN = 262,
+     INICIAL = 263,
+     INICIAL_FIN = 264,
+     FINAL = 265,
+     FINAL_FIN = 266,
+     TRANSICIONES = 267,
+     TRANSICIONES_FIN = 268,
+     AUTOMATA_AFN_FIN = 269,
+     LETRA = 270,
+     DIGITO = 271,
+     CARACTER = 272,
+     CADENA_VACIA = 273,
+     COMA = 274
    };
 #endif
 
@@ -66,10 +66,10 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 11 "analizador.y"
+#line 23 "analizador.y"
 
-  int num;
-  char* str;
+    int num;
+    char* str;
 
 
 

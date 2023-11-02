@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fstream>
 #include "analizador.tab.h"
 void yyerror(const char *s);
 %}
@@ -11,7 +12,7 @@ FILE* yyin; // Definir yyin como variable global
 %option yylineno
 %option noyywrap
 
-CARACTER                   [!@#$%*()=-+{}|:;<>?/.,~]
+CARACTER                   [!@#$%*()=-+{}|:;?.,~]
 
 %%
 
@@ -33,20 +34,13 @@ CARACTER                   [!@#$%*()=-+{}|:;<>?/.,~]
 ","                         { yylval.str=strdup(yytext);return COMA;}
 [CARACTER]+                 { yylval.str=strdup(yytext);return CARACTER;}
 
-[ \t\n]                     { /* ignore whitespace */ }
+[ \t\n]+                    { }// ignore whitespace
 
 .                           {
-                                fprintf(stderr, "Error lexico en la linea %d: caracter no valido '%s'\n", yylineno, yytext);
-                                FILE *logfile = fopen("bitacora_errores.txt", "a");
-                                if (logfile != NULL) {
-                                    fprintf(logfile, "Error lexico en la linea %d: caracter no valido '%s'\n", yylineno, yytext);
-                                    fclose(logfile);
-                                }
+                                std::ofstream errorFile("bitacoraErrores.txt", std::ios_base::app);
+                                errorFile << "Error en la linea: " << yylineno << ", Caracter invalido: " << yytext << std::endl;
+                                errorFile.close();
                             }
-
 
 %%
 
-int yylexWrapper() {
-    return yylex();
-}
